@@ -1,5 +1,6 @@
 //! Application state and screen layout for the wclean GUI.
 
+use std::collections::HashMap;
 use std::sync::mpsc::{channel, Receiver};
 use std::thread;
 
@@ -18,6 +19,7 @@ enum Job {
     Scan(Vec<CategoryReport>),
     Clean(Vec<CategoryReport>),
     Large(Vec<LargeFile>),
+    Detail(Category, Vec<LargeFile>),
 }
 
 pub struct WCleanApp {
@@ -29,6 +31,15 @@ pub struct WCleanApp {
     scan: Vec<CategoryReport>,
     last_freed: Option<u64>,
     notes: Vec<String>,
+
+    /// Which category's detail preview is expanded, and the cached results.
+    expanded: Option<Category>,
+    details: HashMap<Category, Vec<LargeFile>>,
+    detail_loading: Option<Category>,
+
+    /// Lifetime stats persisted across launches.
+    lifetime_freed: u64,
+    clean_count: u64,
 
     large_path: String,
     large_min_mb: u64,
@@ -71,6 +82,11 @@ impl WCleanApp {
             scan: Vec::new(),
             last_freed: None,
             notes: Vec::new(),
+            expanded: None,
+            details: HashMap::new(),
+            detail_loading: None,
+            lifetime_freed: cfg.total_freed.unwrap_or(0),
+            clean_count: cfg.clean_count.unwrap_or(0),
             large_path: cfg.large_path.unwrap_or_else(default_root),
             large_min_mb: cfg.large_min_mb.unwrap_or(100),
             large_top: cfg.large_top.unwrap_or(20),
@@ -99,6 +115,8 @@ impl WCleanApp {
             large_path: Some(self.large_path.clone()),
             large_min_mb: Some(self.large_min_mb),
             large_top: Some(self.large_top),
+            total_freed: Some(self.lifetime_freed),
+            clean_count: Some(self.clean_count),
         }
         .save();
     }
@@ -166,12 +184,30 @@ impl WCleanApp {
                     self.notes = collect_notes(&reports);
                     self.last_freed = Some(freed);
                     self.scan.clear();
+                    self.details.clear();
+                    self.expanded = None;
                     self.disk = diskinfo::system_drive();
+                    if freed > 0 {
+                        self.lifetime_freed = self.lifetime_freed.saturating_add(freed);
+                        self.clean_count = self.clean_count.saturating_add(1);
+                    }
+                    self.save_prefs();
                     self.status = format!("Freed {}.", human_bytes(freed));
                 }
                 Job::Large(files) => {
                     self.status = format!("Found {} large file(s).", files.len());
                     self.large = files;
+                }
+                Job::Detail(cat, files) => {
+                    self.detail_loading = None;
+                    self.details.insert(cat, files);
+                    // Restore the headline status now that the preview is ready.
+                    let total = self.reclaimable();
+                    self.status = if total == 0 {
+                        "Ready".to_string()
+                    } else {
+                        format!("Found {} to reclaim.", human_bytes(total))
+                    };
                 }
             }
         }
@@ -187,6 +223,7 @@ impl Default for WCleanApp {
 impl eframe::App for WCleanApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.poll();
+        self.handle_keys(ctx);
         let p = self.mode.palette();
 
         self.top_bar(ctx);
@@ -207,7 +244,7 @@ impl eframe::App for WCleanApp {
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     self.hero(ui, ctx);
                     ui.add_space(space::LG);
-                    self.categories(ui);
+                    self.categories(ui, ctx);
                     ui.add_space(space::LG);
                     self.large_section(ui, ctx);
                 });
@@ -327,6 +364,20 @@ impl WCleanApp {
                         }
 
                         self.hero_actions(ui, ctx);
+
+                        if self.clean_count > 0 {
+                            ui.add_space(space::SM);
+                            ui.label(
+                                RichText::new(format!(
+                                    "★ {} reclaimed over {} cleanup{}",
+                                    human_bytes(self.lifetime_freed),
+                                    self.clean_count,
+                                    if self.clean_count == 1 { "" } else { "s" }
+                                ))
+                                .small()
+                                .color(p.text_muted),
+                            );
+                        }
                     });
                 });
             });
@@ -368,7 +419,49 @@ impl WCleanApp {
         });
     }
 
-    fn categories(&mut self, ui: &mut egui::Ui) {
+    /// Keyboard shortcuts: Enter runs the primary action, Esc cancels a dialog.
+    fn handle_keys(&mut self, ctx: &egui::Context) {
+        let (enter, esc) = ctx.input(|i| {
+            (
+                i.key_pressed(egui::Key::Enter),
+                i.key_pressed(egui::Key::Escape),
+            )
+        });
+
+        if self.confirm_clean {
+            if esc {
+                self.confirm_clean = false;
+            } else if enter {
+                self.confirm_clean = false;
+                self.start_clean(ctx);
+            }
+            return;
+        }
+
+        if self.busy {
+            return;
+        }
+        // Don't hijack Enter while the user is typing in a field.
+        let typing = ctx.memory(|m| m.focused().is_some());
+        if enter && !typing {
+            if self.scan.is_empty() {
+                if !self.selected_categories().is_empty() {
+                    self.start_scan(ctx);
+                }
+            } else if self.reclaimable() > 0 {
+                self.confirm_clean = true;
+            }
+        }
+    }
+
+    fn start_clean(&mut self, ctx: &egui::Context) {
+        let cats = self.selected_categories();
+        self.spawn(ctx, "Cleaning…", move || {
+            Job::Clean(cats.iter().map(|&c| cleaner::clean(c)).collect())
+        });
+    }
+
+    fn categories(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
         let p = self.mode.palette();
         ui.horizontal(|ui| {
             widgets::section_header(
@@ -407,13 +500,50 @@ impl WCleanApp {
             .collect();
 
         let mut changed = false;
+        let mut toggle_expand: Option<Category> = None;
         for (i, &cat) in Category::all().iter().enumerate() {
             let mut sel = self.selected[i];
             if widgets::category_card(ui, &p, cat, &mut sel, bytes[i]) {
                 changed = true;
             }
             self.selected[i] = sel;
+
+            // A details disclosure for folder-based categories that were
+            // scanned and actually contain something.
+            let has_size = bytes[i].is_some_and(|b| b > 0);
+            if cat != Category::RecycleBin && has_size {
+                let is_open = self.expanded == Some(cat);
+                let label = if is_open {
+                    "Hide details"
+                } else {
+                    "Show details"
+                };
+                ui.horizontal(|ui| {
+                    ui.add_space(8.0);
+                    let btn = egui::Button::new(RichText::new(label).small().color(p.accent))
+                        .frame(false);
+                    if ui.add_enabled(!self.busy, btn).clicked() {
+                        toggle_expand = Some(cat);
+                    }
+                });
+                if is_open {
+                    self.show_detail(ui, &p, cat);
+                }
+            }
             ui.add_space(space::SM);
+        }
+        if let Some(cat) = toggle_expand {
+            if self.expanded == Some(cat) {
+                self.expanded = None;
+            } else {
+                self.expanded = Some(cat);
+                if !self.details.contains_key(&cat) {
+                    self.detail_loading = Some(cat);
+                    self.spawn(ctx, "Loading details…", move || {
+                        Job::Detail(cat, cleaner::detail(cat, 6))
+                    });
+                }
+            }
         }
         if changed {
             self.save_prefs();
@@ -428,6 +558,49 @@ impl WCleanApp {
                         .color(p.text_muted),
                 );
             }
+        }
+    }
+
+    /// Render the largest files inside a category, beneath its card.
+    fn show_detail(&self, ui: &mut egui::Ui, p: &theme::Palette, cat: Category) {
+        if self.detail_loading == Some(cat) {
+            ui.horizontal(|ui| {
+                ui.add_space(14.0);
+                ui.spinner();
+                ui.label(RichText::new("Scanning…").small().color(p.text_muted));
+            });
+            return;
+        }
+        match self.details.get(&cat) {
+            Some(files) if !files.is_empty() => {
+                for f in files {
+                    ui.horizontal(|ui| {
+                        ui.add_space(14.0);
+                        ui.label(
+                            RichText::new(human_bytes(f.size))
+                                .small()
+                                .strong()
+                                .color(p.text),
+                        );
+                        ui.label(
+                            RichText::new(file_label(&f.path))
+                                .small()
+                                .color(p.text_muted),
+                        );
+                    });
+                }
+            }
+            Some(_) => {
+                ui.horizontal(|ui| {
+                    ui.add_space(14.0);
+                    ui.label(
+                        RichText::new("Lots of small files — nothing big to preview.")
+                            .small()
+                            .color(p.text_muted),
+                    );
+                });
+            }
+            None => {}
         }
     }
 
@@ -568,6 +741,13 @@ fn collect_notes(reports: &[CategoryReport]) -> Vec<String> {
         .iter()
         .flat_map(|r| r.notes.iter().cloned())
         .collect()
+}
+
+/// A compact label for a detail row: the file name, or the full path if none.
+fn file_label(path: &std::path::Path) -> String {
+    path.file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_else(|| path.display().to_string())
 }
 
 /// Open the platform file manager with `path` highlighted (best effort).

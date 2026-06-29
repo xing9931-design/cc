@@ -28,7 +28,7 @@ impl Risk {
 }
 
 /// Identifies a cleanup category on the command line and in reports.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Category {
     Temp,
     Browser,
@@ -135,6 +135,24 @@ pub fn scan(category: Category) -> CategoryReport {
         Category::WindowsUpdate => system::windows_update_scan(),
         Category::CrashDumps => system::crash_dumps_scan(),
     }
+}
+
+/// The directories a category covers (empty for the Recycle Bin, which isn't a
+/// plain folder). Used to drill into what a category would remove.
+pub fn category_dirs(category: Category) -> Vec<std::path::PathBuf> {
+    match category {
+        Category::Temp => temp::temp_dirs(),
+        Category::Browser => browser::cache_paths(),
+        Category::WindowsUpdate => system::windows_update_dirs(),
+        Category::CrashDumps => system::crash_dump_dirs(),
+        Category::RecycleBin => Vec::new(),
+    }
+}
+
+/// The largest individual files a category would remove, for a preview.
+pub fn detail(category: Category, limit: usize) -> Vec<largefiles::LargeFile> {
+    let dirs = category_dirs(category);
+    largefiles::scan_roots(&dirs, 0, limit)
 }
 
 /// Clean a category, reclaiming space. Returns what was actually freed.

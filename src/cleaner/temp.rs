@@ -10,7 +10,7 @@ use crate::util::{clean_dir_contents, measure_dir};
 ///
 /// On non-Windows hosts this resolves to whatever `TMPDIR`/`TEMP` point at, so
 /// the logic stays testable; the real targets only exist on Windows.
-fn temp_dirs() -> Vec<PathBuf> {
+pub fn temp_dirs() -> Vec<PathBuf> {
     let mut dirs: Vec<PathBuf> = Vec::new();
     let mut push = |p: PathBuf| {
         if !dirs.contains(&p) {

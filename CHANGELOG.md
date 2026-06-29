@@ -3,6 +3,27 @@
 All notable changes to wclean are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.5.0]
+
+### Added
+
+- **Category drill-down** — after a scan, expand any folder-based category to
+  preview the largest individual files it would remove, fetched on a background
+  thread (`cleaner::detail` over `largefiles::scan_roots`). Transparency before
+  deletion.
+- **Lifetime stats** — the GUI remembers and displays how much you've reclaimed
+  in total and how many cleanups you've run ("★ 12.6 GB reclaimed over 7
+  cleanups"), persisted with your preferences.
+- **Keyboard shortcuts** — Enter runs the primary action (scan, then open the
+  confirm dialog); Esc cancels the dialog; Enter confirms it.
+
+### Changed
+
+- `largefiles::scan` now delegates to a new `scan_roots` that scans multiple
+  directories with one bounded heap.
+- Category directory sets are exposed (`cleaner::category_dirs`) to power the
+  drill-down.
+
 ## [0.4.0]
 
 ### Added

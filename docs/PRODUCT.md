@@ -35,7 +35,7 @@ trust by over-promising and over-deleting.
    never force-killed. We explain when elevation is needed instead of demanding
    it up front.
 
-## What it does (v0.3)
+## What it does (v0.5)
 
 | Capability         | Behavior                                                        |
 | ------------------ | -------------------------------------------------------------- |
@@ -45,7 +45,9 @@ trust by over-promising and over-deleting.
 | Windows Update cache | Clear `SoftwareDistribution\Download` — **Low impact**       |
 | Crash dumps        | Clear crash dumps and error-report queues — **Safe**           |
 | Large-file finder  | Rank the biggest files under a folder — **report only**        |
+| Category drill-down | Preview the biggest files a category would remove, before deleting |
 | Drive gauge        | Live `C:` usage so the user sees the problem and the result    |
+| Lifetime stats     | Remembered total reclaimed and cleanup count, for a sense of progress |
 
 Every category carries a **risk label** so the user always knows what's safe.
 
@@ -67,9 +69,11 @@ Every category carries a **risk label** so the user always knows what's safe.
 
 ## Roadmap (candidates)
 
-- Per-category drill-down ("show me what's in here") before deleting.
-- Windows Update / Delivery Optimization cache, thumbnail cache, dump files.
+- Thumbnail cache, Delivery Optimization, and more system-junk categories.
 - Disk-usage treemap for the large-file view.
-- Remembered preferences (theme, default selection) and a scheduled, *opt-in*
-  reminder (never an automatic delete).
+- A scheduled, *opt-in* reminder (never an automatic delete).
 - Signed installer + auto-update.
+
+_Shipped since v0.1: design-system GUI, drive gauge, Windows Update & crash-dump
+cleanup, preference persistence, reveal-in-Explorer, category drill-down,
+lifetime stats, keyboard control._

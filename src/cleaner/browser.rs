@@ -124,6 +124,11 @@ fn firefox_caches(profiles: &Path) -> Vec<PathBuf> {
     caches
 }
 
+/// The cache directories for every detected browser profile, as plain paths.
+pub fn cache_paths() -> Vec<PathBuf> {
+    cache_dirs().into_iter().map(|c| c.path).collect()
+}
+
 pub fn scan() -> CategoryReport {
     let mut report = CategoryReport::new(Category::Browser);
     let dirs = cache_dirs();

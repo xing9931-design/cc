@@ -19,31 +19,39 @@ pub struct LargeFile {
 
 /// Walk `root` and return up to `limit` files of at least `min_size` bytes,
 /// largest first.
+pub fn scan(root: &Path, min_size: u64, limit: usize) -> Vec<LargeFile> {
+    scan_roots(std::slice::from_ref(&root.to_path_buf()), min_size, limit)
+}
+
+/// Walk every directory in `roots` and return the largest files across all of
+/// them, largest first.
 ///
 /// Memory stays bounded: we keep a min-heap of at most `limit` entries and
 /// discard anything smaller than the current smallest once full.
-pub fn scan(root: &Path, min_size: u64, limit: usize) -> Vec<LargeFile> {
+pub fn scan_roots(roots: &[PathBuf], min_size: u64, limit: usize) -> Vec<LargeFile> {
     let mut heap: BinaryHeap<Reverse<(u64, PathBuf)>> = BinaryHeap::new();
 
-    for entry in WalkDir::new(root)
-        .into_iter()
-        .filter_map(Result::ok)
-        .filter(|e| e.file_type().is_file())
-    {
-        let size = match entry.metadata() {
-            Ok(m) => m.len(),
-            Err(_) => continue,
-        };
-        if size < min_size {
-            continue;
-        }
+    for root in roots {
+        for entry in WalkDir::new(root)
+            .into_iter()
+            .filter_map(Result::ok)
+            .filter(|e| e.file_type().is_file())
+        {
+            let size = match entry.metadata() {
+                Ok(m) => m.len(),
+                Err(_) => continue,
+            };
+            if size < min_size {
+                continue;
+            }
 
-        if heap.len() < limit {
-            heap.push(Reverse((size, entry.into_path())));
-        } else if let Some(Reverse((smallest, _))) = heap.peek() {
-            if size > *smallest {
-                heap.pop();
+            if heap.len() < limit {
                 heap.push(Reverse((size, entry.into_path())));
+            } else if let Some(Reverse((smallest, _))) = heap.peek() {
+                if size > *smallest {
+                    heap.pop();
+                    heap.push(Reverse((size, entry.into_path())));
+                }
             }
         }
     }

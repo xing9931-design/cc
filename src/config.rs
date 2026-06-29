@@ -19,6 +19,10 @@ pub struct Config {
     pub large_path: Option<String>,
     pub large_min_mb: Option<u64>,
     pub large_top: Option<usize>,
+    /// Lifetime bytes reclaimed across all cleans.
+    pub total_freed: Option<u64>,
+    /// Lifetime number of cleanups performed.
+    pub clean_count: Option<u64>,
 }
 
 impl Config {
@@ -45,6 +49,8 @@ impl Config {
             large_path: map.get("large_path").map(|s| s.to_string()),
             large_min_mb: map.get("large_min_mb").and_then(|s| s.parse().ok()),
             large_top: map.get("large_top").and_then(|s| s.parse().ok()),
+            total_freed: map.get("total_freed").and_then(|s| s.parse().ok()),
+            clean_count: map.get("clean_count").and_then(|s| s.parse().ok()),
         }
     }
 
@@ -65,6 +71,12 @@ impl Config {
         }
         if let Some(t) = self.large_top {
             out.push_str(&format!("large_top={t}\n"));
+        }
+        if let Some(f) = self.total_freed {
+            out.push_str(&format!("total_freed={f}\n"));
+        }
+        if let Some(c) = self.clean_count {
+            out.push_str(&format!("clean_count={c}\n"));
         }
         out
     }
@@ -112,6 +124,8 @@ mod tests {
             large_path: Some("C:\\".into()),
             large_min_mb: Some(250),
             large_top: Some(30),
+            total_freed: Some(9_876_543_210),
+            clean_count: Some(42),
         };
         let parsed = Config::parse(&cfg.to_text());
         assert_eq!(parsed, cfg);

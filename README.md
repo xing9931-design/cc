@@ -61,6 +61,13 @@ no-op), which keeps development possible off-Windows.
 - Scans and cleans run on a background thread, so the window stays responsive.
 - The **Large files** panel lists the biggest files under any folder (report
   only — it never deletes).
+- **Drill down** into any category after a scan to preview the largest files it
+  would remove — see exactly what you're deleting before you delete it.
+- The app **remembers your lifetime stats** (total reclaimed, cleanups run) and
+  surfaces them in the header.
+- **Keyboard:** Enter runs the primary action (scan → confirm), Esc cancels.
+
+![Drill-down preview with lifetime stats](docs/images/wclean-details.png)
 
 ```sh
 cargo run --release --features gui --bin wclean-gui

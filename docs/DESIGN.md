@@ -51,6 +51,11 @@ beat.
 - **Success banner** — positive reinforcement after a clean ("Freed 4.2 GB 🎉").
 - **Risk badge** — a constant trust signal: *Safe* (green) / *Low impact*
   (amber).
+- **Drill-down** — a quiet "Show details" disclosure under each scanned category
+  reveals its largest files. Transparency on demand, without cluttering the
+  default view.
+- **Lifetime stat** — a subtle line in the hero ("★ 12.6 GB reclaimed over 7
+  cleanups") that rewards return visits without nagging.
 
 ## Interaction & states
 
@@ -61,6 +66,9 @@ beat.
   the destructive action is the one that's visually "hot."
 - **Graceful degradation.** Off-Windows (developer machines) the drive gauge and
   Recycle Bin degrade to honest placeholders instead of breaking.
+- **Keyboard-first is possible.** Enter drives the primary action all the way
+  through (scan → confirm → clean); Esc backs out of the dialog. Enter is never
+  hijacked while typing in a field.
 
 ## Accessibility & theming
 

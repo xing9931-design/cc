@@ -11,7 +11,7 @@ use crate::cleaner::{Category, CategoryReport};
 use crate::util::{clean_dir_contents, measure_dir};
 
 /// Downloaded update payloads under `SoftwareDistribution\Download`.
-fn windows_update_dirs() -> Vec<PathBuf> {
+pub fn windows_update_dirs() -> Vec<PathBuf> {
     let mut dirs = Vec::new();
     if let Ok(root) = env::var("SystemRoot").or_else(|_| env::var("windir")) {
         dirs.push(
@@ -24,7 +24,7 @@ fn windows_update_dirs() -> Vec<PathBuf> {
 }
 
 /// Crash dumps and Windows Error Reporting queues.
-fn crash_dump_dirs() -> Vec<PathBuf> {
+pub fn crash_dump_dirs() -> Vec<PathBuf> {
     let mut dirs = Vec::new();
     if let Ok(local) = env::var("LOCALAPPDATA") {
         let local = PathBuf::from(local);
