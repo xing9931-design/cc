@@ -3,6 +3,23 @@
 All notable changes to wclean are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.6.0]
+
+### Added
+
+- **Storage breakdown** — analyze any folder and see what's using the space as
+  ranked, proportional bars ("Users — 45%"). Answers "where did my space go?",
+  not just "what junk can I delete?" (`usage` module).
+- The GUI's large-file area is now a unified **"Explore your disk"** section
+  with two lenses on the same folder: *Storage breakdown* and *Largest files*.
+- New CLI command: `wclean breakdown [path] [--top N]`.
+- A painted proportional-bar widget for the breakdown rows.
+
+### Changed
+
+- `largefiles::scan` is reused via `scan_roots`; results rendering refactored
+  into `breakdown_results` / `large_results`.
+
 ## [0.5.0]
 
 ### Added

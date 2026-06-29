@@ -57,6 +57,17 @@ pub enum Command {
         #[arg(long, default_value_t = 20)]
         top: usize,
     },
+
+    /// Show a storage breakdown of a folder (report only).
+    Breakdown {
+        /// Directory to analyze (default: the system drive, e.g. C:\).
+        #[arg(default_value_t = default_root())]
+        path: String,
+
+        /// Maximum number of entries to list.
+        #[arg(long, default_value_t = 20)]
+        top: usize,
+    },
 }
 
 /// Categories selectable on the command line.

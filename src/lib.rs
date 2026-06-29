@@ -6,6 +6,7 @@
 pub mod cleaner;
 pub mod config;
 pub mod diskinfo;
+pub mod usage;
 pub mod util;
 
 #[cfg(feature = "gui")]

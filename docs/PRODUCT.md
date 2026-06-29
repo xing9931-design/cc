@@ -35,7 +35,7 @@ trust by over-promising and over-deleting.
    never force-killed. We explain when elevation is needed instead of demanding
    it up front.
 
-## What it does (v0.5)
+## What it does (v0.6)
 
 | Capability         | Behavior                                                        |
 | ------------------ | -------------------------------------------------------------- |
@@ -46,6 +46,7 @@ trust by over-promising and over-deleting.
 | Crash dumps        | Clear crash dumps and error-report queues — **Safe**           |
 | Large-file finder  | Rank the biggest files under a folder — **report only**        |
 | Category drill-down | Preview the biggest files a category would remove, before deleting |
+| Storage breakdown  | See what's using space in a folder, as ranked proportional bars |
 | Drive gauge        | Live `C:` usage so the user sees the problem and the result    |
 | Lifetime stats     | Remembered total reclaimed and cleanup count, for a sense of progress |
 
@@ -70,10 +71,10 @@ Every category carries a **risk label** so the user always knows what's safe.
 ## Roadmap (candidates)
 
 - Thumbnail cache, Delivery Optimization, and more system-junk categories.
-- Disk-usage treemap for the large-file view.
+- A full squarified treemap on top of the storage breakdown.
 - A scheduled, *opt-in* reminder (never an automatic delete).
 - Signed installer + auto-update.
 
 _Shipped since v0.1: design-system GUI, drive gauge, Windows Update & crash-dump
 cleanup, preference persistence, reveal-in-Explorer, category drill-down,
-lifetime stats, keyboard control._
+lifetime stats, keyboard control, storage breakdown._

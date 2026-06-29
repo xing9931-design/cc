@@ -18,6 +18,7 @@ fn main() {
             yes,
         } => run_clean(&categories, dry_run, yes),
         Command::Large { path, min_mb, top } => run_large(&path, min_mb, top),
+        Command::Breakdown { path, top } => run_breakdown(&path, top),
     }
 }
 
@@ -97,4 +98,19 @@ fn run_large(path: &str, min_mb: u64, top: usize) {
     ui::large_files(&files, path);
     println!();
     ui::info("These are reported only — wclean never deletes your files here.");
+}
+
+fn run_breakdown(path: &str, top: usize) {
+    ui::banner("breakdown — analyzing storage");
+    let root = std::path::Path::new(path);
+    if !root.exists() {
+        ui::warn(&format!("path does not exist: {path}"));
+        return;
+    }
+    ui::info(&format!("Analyzing {path} (this can take a while)…"));
+    println!();
+    let entries = wclean::usage::breakdown(root, top);
+    ui::breakdown(&entries, path);
+    println!();
+    ui::info("These are reported only — nothing was deleted.");
 }

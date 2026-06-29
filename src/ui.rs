@@ -57,6 +57,37 @@ pub fn large_files(files: &[LargeFile], root: &str) {
     }
 }
 
+/// Render a storage breakdown as a ranked list with percentages.
+pub fn breakdown(entries: &[wclean::usage::Entry], root: &str) {
+    if entries.is_empty() {
+        println!("  {}", "Nothing to show for that folder.".dimmed());
+        return;
+    }
+    let total: u64 = entries.iter().map(|e| e.size).sum();
+    println!(
+        "  {}",
+        format!(
+            "Storage breakdown of {root} — {} total:",
+            human_bytes(total)
+        )
+        .dimmed()
+    );
+    println!();
+    for e in entries {
+        let pct = if total > 0 {
+            (e.size as f64 / total as f64 * 100.0).round() as u32
+        } else {
+            0
+        };
+        println!(
+            "  {:>10}  {:>3}%  {}",
+            human_bytes(e.size).green().to_string(),
+            pct,
+            e.name
+        );
+    }
+}
+
 /// Ask a yes/no question on stdin. Returns `false` on EOF or anything but "y".
 pub fn confirm(question: &str) -> bool {
     print!("{} {} ", question, "[y/N]".dimmed());

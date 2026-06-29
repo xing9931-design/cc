@@ -51,6 +51,9 @@ beat.
 - **Success banner** — positive reinforcement after a clean ("Freed 4.2 GB 🎉").
 - **Risk badge** — a constant trust signal: *Safe* (green) / *Low impact*
   (amber).
+- **Storage breakdown** — proportional bars that turn "where did my space go?"
+  into an instant read: the dominant folder is accented and full-width, the rest
+  scale down from it. Insight without a spreadsheet.
 - **Drill-down** — a quiet "Show details" disclosure under each scanned category
   reveals its largest files. Transparency on demand, without cluttering the
   default view.

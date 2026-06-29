@@ -12,6 +12,7 @@ use crate::cleaner::largefiles::{self, LargeFile};
 use crate::cleaner::{self, Category, CategoryReport};
 use crate::config::Config;
 use crate::diskinfo::{self, DiskUsage};
+use crate::usage::{self, Entry as UsageEntry};
 use crate::util::human_bytes;
 
 /// A finished background job, delivered to the UI thread.
@@ -20,6 +21,7 @@ enum Job {
     Clean(Vec<CategoryReport>),
     Large(Vec<LargeFile>),
     Detail(Category, Vec<LargeFile>),
+    Breakdown(Vec<UsageEntry>),
 }
 
 pub struct WCleanApp {
@@ -45,6 +47,7 @@ pub struct WCleanApp {
     large_min_mb: u64,
     large_top: usize,
     large: Vec<LargeFile>,
+    breakdown: Vec<UsageEntry>,
 
     status: String,
     busy: bool,
@@ -91,6 +94,7 @@ impl WCleanApp {
             large_min_mb: cfg.large_min_mb.unwrap_or(100),
             large_top: cfg.large_top.unwrap_or(20),
             large: Vec::new(),
+            breakdown: Vec::new(),
             status: "Ready".to_string(),
             busy: false,
             rx: None,
@@ -198,6 +202,14 @@ impl WCleanApp {
                     self.status = format!("Found {} large file(s).", files.len());
                     self.large = files;
                 }
+                Job::Breakdown(entries) => {
+                    self.status = if entries.is_empty() {
+                        "Nothing to show for that folder.".to_string()
+                    } else {
+                        format!("Analyzed {} item(s).", entries.len())
+                    };
+                    self.breakdown = entries;
+                }
                 Job::Detail(cat, files) => {
                     self.detail_loading = None;
                     self.details.insert(cat, files);
@@ -246,7 +258,7 @@ impl eframe::App for WCleanApp {
                     ui.add_space(space::LG);
                     self.categories(ui, ctx);
                     ui.add_space(space::LG);
-                    self.large_section(ui, ctx);
+                    self.explore_section(ui, ctx);
                 });
             });
 
@@ -604,13 +616,13 @@ impl WCleanApp {
         }
     }
 
-    fn large_section(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
+    fn explore_section(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
         let p = self.mode.palette();
         widgets::section_header(
             ui,
             &p,
-            "Find large files",
-            "List the biggest files under a folder. Reported only — never deleted.",
+            "Explore your disk",
+            "See where space goes and find big files. Nothing here is deleted.",
         );
 
         egui::Frame::default()
@@ -621,7 +633,7 @@ impl WCleanApp {
             .show(ui, |ui| {
                 ui.set_width(ui.available_width());
                 let mut opts_changed = false;
-                egui::Grid::new("large_opts")
+                egui::Grid::new("explore_opts")
                     .num_columns(2)
                     .spacing([12.0, 8.0])
                     .show(ui, |ui| {
@@ -649,43 +661,92 @@ impl WCleanApp {
                 }
 
                 ui.add_space(space::SM);
-                if widgets::primary_button(ui, &p, "📁  Scan folder", !self.busy).clicked() {
-                    let path = std::path::PathBuf::from(self.large_path.clone());
-                    let min = self.large_min_mb.saturating_mul(1024 * 1024);
-                    let top = self.large_top;
-                    self.spawn(ctx, "Scanning for large files…", move || {
-                        Job::Large(largefiles::scan(&path, min, top))
-                    });
-                }
-
-                if !self.large.is_empty() {
-                    ui.add_space(space::SM);
-                    for (i, f) in self.large.iter().enumerate() {
-                        ui.horizontal(|ui| {
-                            ui.label(RichText::new(format!("{:>2}.", i + 1)).color(p.text_muted));
-                            ui.label(RichText::new(human_bytes(f.size)).strong().color(p.accent));
-                            ui.label(
-                                RichText::new(f.path.display().to_string())
-                                    .color(p.text)
-                                    .small(),
-                            );
-                            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                                let reveal = egui::Button::new(
-                                    RichText::new("Reveal").small().color(p.accent),
-                                )
-                                .frame(false);
-                                if ui
-                                    .add(reveal)
-                                    .on_hover_text("Show in file manager")
-                                    .clicked()
-                                {
-                                    reveal_in_file_manager(&f.path);
-                                }
-                            });
+                ui.horizontal(|ui| {
+                    if widgets::primary_button(ui, &p, "📊  Storage breakdown", !self.busy)
+                        .clicked()
+                    {
+                        let path = std::path::PathBuf::from(self.large_path.clone());
+                        self.spawn(ctx, "Analyzing storage…", move || {
+                            Job::Breakdown(usage::breakdown(&path, 14))
                         });
                     }
-                }
+                    if widgets::ghost_button(ui, &p, "📁  Largest files", !self.busy).clicked() {
+                        let path = std::path::PathBuf::from(self.large_path.clone());
+                        let min = self.large_min_mb.saturating_mul(1024 * 1024);
+                        let top = self.large_top;
+                        self.spawn(ctx, "Scanning for large files…", move || {
+                            Job::Large(largefiles::scan(&path, min, top))
+                        });
+                    }
+                });
+
+                self.breakdown_results(ui, &p);
+                self.large_results(ui, &p);
             });
+    }
+
+    /// Proportional bars showing what dominates the analyzed folder.
+    fn breakdown_results(&self, ui: &mut egui::Ui, p: &theme::Palette) {
+        if self.breakdown.is_empty() {
+            return;
+        }
+        let max = self
+            .breakdown
+            .iter()
+            .map(|e| e.size)
+            .max()
+            .unwrap_or(1)
+            .max(1);
+        let total = usage::total(&self.breakdown);
+        ui.add_space(space::MD);
+        ui.label(
+            RichText::new(format!("Storage breakdown — {} total", human_bytes(total)))
+                .small()
+                .color(p.text_muted),
+        );
+        ui.add_space(space::XS);
+        for (i, e) in self.breakdown.iter().enumerate() {
+            let frac = e.size as f32 / max as f32;
+            let pct = if total > 0 {
+                (e.size as f64 / total as f64 * 100.0).round() as u32
+            } else {
+                0
+            };
+            let size_text = format!("{} · {pct}%", human_bytes(e.size));
+            widgets::usage_row(ui, p, &e.name, &size_text, frac, i == 0 || e.is_loose_files);
+        }
+    }
+
+    /// The ranked largest-files list, each with a reveal action.
+    fn large_results(&self, ui: &mut egui::Ui, p: &theme::Palette) {
+        if self.large.is_empty() {
+            return;
+        }
+        ui.add_space(space::MD);
+        ui.label(RichText::new("Largest files").small().color(p.text_muted));
+        ui.add_space(space::XS);
+        for (i, f) in self.large.iter().enumerate() {
+            ui.horizontal(|ui| {
+                ui.label(RichText::new(format!("{:>2}.", i + 1)).color(p.text_muted));
+                ui.label(RichText::new(human_bytes(f.size)).strong().color(p.accent));
+                ui.label(
+                    RichText::new(f.path.display().to_string())
+                        .color(p.text)
+                        .small(),
+                );
+                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                    let reveal = egui::Button::new(RichText::new("Reveal").small().color(p.accent))
+                        .frame(false);
+                    if ui
+                        .add(reveal)
+                        .on_hover_text("Show in file manager")
+                        .clicked()
+                    {
+                        reveal_in_file_manager(&f.path);
+                    }
+                });
+            });
+        }
     }
 
     fn confirm_dialog(&mut self, ctx: &egui::Context) {

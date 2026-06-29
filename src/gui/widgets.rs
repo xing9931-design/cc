@@ -213,6 +213,38 @@ pub fn pill(ui: &mut Ui, text: &str, fg: Color32, bg: Color32) {
         });
 }
 
+/// One row of a storage breakdown: a name, a proportional bar, and a size.
+///
+/// `fraction` (0..=1) sizes the filled portion of the bar; `highlight` paints
+/// it in the accent color (used for the largest / loose-files row).
+pub fn usage_row(
+    ui: &mut Ui,
+    p: &Palette,
+    name: &str,
+    size_text: &str,
+    fraction: f32,
+    accent: bool,
+) {
+    ui.horizontal(|ui| {
+        ui.add_sized(
+            [150.0, 18.0],
+            egui::Label::new(RichText::new(name).color(p.text_strong)).truncate(),
+        );
+        // Reserve room for the size label, then fill the rest with the bar.
+        let bar_w = (ui.available_width() - 86.0).max(48.0);
+        let (rect, _) = ui.allocate_exact_size(Vec2::new(bar_w, 12.0), Sense::hover());
+        let painter = ui.painter_at(rect);
+        painter.rect_filled(rect, CornerRadius::same(4), p.surface_alt);
+        let mut fill = rect;
+        fill.set_width(rect.width() * fraction.clamp(0.0, 1.0));
+        let color = if accent { p.accent } else { p.text_muted };
+        painter.rect_filled(fill, CornerRadius::same(4), color);
+        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+            ui.label(RichText::new(size_text).small().color(p.text_muted));
+        });
+    });
+}
+
 /// A prominent filled action button.
 pub fn primary_button(ui: &mut Ui, p: &Palette, text: &str, enabled: bool) -> egui::Response {
     let btn = egui::Button::new(RichText::new(text).color(Color32::WHITE).strong())

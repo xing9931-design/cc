@@ -23,6 +23,7 @@ so you can decide what else to remove. It ships as both a **command-line tool**
 | Recycle Bin         | Empties the Recycle Bin across all drives (Win32 Shell API)          |
 | Windows Update cache| Old payloads in `SoftwareDistribution\Download` (may need admin)      |
 | Crash dumps         | Crash dumps and Windows Error Reporting queues                       |
+| Storage breakdown   | See what's using space in any folder, as proportional bars — **report only** |
 | Large file scan     | Reports the biggest files under a path — **report only, never deletes** |
 
 ### Safety first
@@ -61,8 +62,12 @@ no-op), which keeps development possible off-Windows.
 - Scans and cleans run on a background thread, so the window stays responsive.
 - The **Large files** panel lists the biggest files under any folder (report
   only — it never deletes).
+- **Storage breakdown** — analyze a folder and see what's eating the space as
+  ranked proportional bars, before deciding what to remove.
 - **Drill down** into any category after a scan to preview the largest files it
   would remove — see exactly what you're deleting before you delete it.
+
+![Storage breakdown](docs/images/wclean-breakdown.png)
 - The app **remembers your lifetime stats** (total reclaimed, cleanups run) and
   surfaces them in the header.
 - **Keyboard:** Enter runs the primary action (scan → confirm), Esc cancels.
@@ -110,12 +115,15 @@ wclean large
 
 # Find big files under a specific folder
 wclean large "D:\Downloads" --min-mb 50 --top 30
+
+# See what's using space in a folder (proportional breakdown)
+wclean breakdown "C:\" --top 15
 ```
 
 ### Categories
 
-`temp`, `browser`, `recyclebin` — pass any subset to `scan`/`clean`, or none to
-act on all of them.
+`temp`, `browser`, `recyclebin`, `windows-update`, `crash-dumps` — pass any
+subset to `scan`/`clean`, or none to act on all of them.
 
 ## Notes
 
