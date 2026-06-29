@@ -65,6 +65,8 @@ pub enum CategoryArg {
     Temp,
     Browser,
     Recyclebin,
+    WindowsUpdate,
+    CrashDumps,
 }
 
 impl From<CategoryArg> for Category {
@@ -73,6 +75,8 @@ impl From<CategoryArg> for Category {
             CategoryArg::Temp => Category::Temp,
             CategoryArg::Browser => Category::Browser,
             CategoryArg::Recyclebin => Category::RecycleBin,
+            CategoryArg::WindowsUpdate => Category::WindowsUpdate,
+            CategoryArg::CrashDumps => Category::CrashDumps,
         }
     }
 }

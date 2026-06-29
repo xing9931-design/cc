@@ -13,7 +13,16 @@ use crate::diskinfo::DiskUsage;
 use crate::util::human_bytes;
 
 /// A circular disk-usage gauge with the percentage in the middle.
+///
+/// The fill sweeps in and the percentage counts up on first paint and whenever
+/// the value changes, via egui's animation curves.
 pub fn disk_ring(ui: &mut Ui, p: &Palette, usage: Option<DiskUsage>, diameter: f32) {
+    let target = usage.map(|u| u.used_fraction()).unwrap_or(0.0);
+    // Ease the displayed fraction toward the target (auto-requests repaints).
+    let fraction = ui
+        .ctx()
+        .animate_value_with_time(egui::Id::new("wclean_disk_ring"), target, 0.8);
+
     let (rect, _) = ui.allocate_exact_size(Vec2::splat(diameter), Sense::hover());
     let painter = ui.painter_at(rect);
     let center = rect.center();
@@ -26,7 +35,6 @@ pub fn disk_ring(ui: &mut Ui, p: &Palette, usage: Option<DiskUsage>, diameter: f
         Stroke::new(thickness, p.surface_alt),
     ));
 
-    let fraction = usage.map(|u| u.used_fraction()).unwrap_or(0.0);
     let value_color = match fraction {
         f if f >= 0.9 => p.danger,
         f if f >= 0.75 => p.warning,

@@ -3,6 +3,24 @@
 All notable changes to wclean are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.3.0]
+
+### Added
+
+- **Two new cleanup categories**: Windows Update download cache
+  (`SoftwareDistribution\Download`) and crash dumps / Windows Error Reporting
+  (`system` module), each with a risk label.
+- **Animated drive gauge** — the ring fill sweeps in and the percentage counts
+  up via egui animation curves.
+- **Release workflow** (`.github/workflows/release.yml`) that builds the CLI and
+  GUI `.exe`s on Windows and attaches them to a GitHub Release on version tags.
+- More unit tests covering the system-junk scan/clean logic.
+
+### Changed
+
+- GUI selection state is now dynamic (`Vec<bool>`), adapting to any number of
+  categories; default window height increased for the longer list.
+
 ## [0.2.0]
 
 ### Added

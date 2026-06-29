@@ -24,7 +24,7 @@ pub struct WCleanApp {
     disk: Option<DiskUsage>,
 
     /// Selection state, indexed to match [`Category::all`].
-    selected: [bool; 3],
+    selected: Vec<bool>,
     scan: Vec<CategoryReport>,
     last_freed: Option<u64>,
     notes: Vec<String>,
@@ -45,7 +45,7 @@ impl WCleanApp {
         Self {
             mode: Mode::from_env(),
             disk: diskinfo::system_drive(),
-            selected: [true, true, true],
+            selected: vec![true; Category::all().len()],
             scan: Vec::new(),
             last_freed: None,
             notes: Vec::new(),

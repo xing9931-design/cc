@@ -1,0 +1,45 @@
+name: Release
+
+# Build Windows binaries and attach them to a GitHub Release when a
+# version tag (e.g. v0.3.0) is pushed.
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    name: Build Windows binaries
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build CLI + GUI (release)
+        run: cargo build --release --features gui --bin wclean --bin wclean-gui
+
+      - name: Stage artifacts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item target/release/wclean.exe dist/
+          Copy-Item target/release/wclean-gui.exe dist/
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wclean-windows
+          path: dist/*.exe
+
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.exe
+          generate_release_notes: true

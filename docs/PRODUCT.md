@@ -35,15 +35,17 @@ trust by over-promising and over-deleting.
    never force-killed. We explain when elevation is needed instead of demanding
    it up front.
 
-## What it does (v0.2)
+## What it does (v0.3)
 
-| Capability        | Behavior                                                       |
-| ----------------- | -------------------------------------------------------------- |
-| Temporary files   | Clean `%TEMP%`, `Windows\Temp`, `Prefetch` — **Safe**         |
-| Browser caches    | Chrome / Edge / Brave / Firefox, all profiles — **Low impact** |
-| Recycle Bin       | Empty via the Win32 Shell API — **Low impact**                 |
-| Large-file finder | Rank the biggest files under a folder — **report only**        |
-| Drive gauge       | Live `C:` usage so the user sees the problem and the result    |
+| Capability         | Behavior                                                        |
+| ------------------ | -------------------------------------------------------------- |
+| Temporary files    | Clean `%TEMP%`, `Windows\Temp`, `Prefetch` — **Safe**         |
+| Browser caches     | Chrome / Edge / Brave / Firefox, all profiles — **Low impact** |
+| Recycle Bin        | Empty via the Win32 Shell API — **Low impact**                 |
+| Windows Update cache | Clear `SoftwareDistribution\Download` — **Low impact**       |
+| Crash dumps        | Clear crash dumps and error-report queues — **Safe**           |
+| Large-file finder  | Rank the biggest files under a folder — **report only**        |
+| Drive gauge        | Live `C:` usage so the user sees the problem and the result    |
 
 Every category carries a **risk label** so the user always knows what's safe.
 

@@ -21,6 +21,8 @@ so you can decide what else to remove. It ships as both a **command-line tool**
 | Temporary files     | `%TEMP%`, `%TMP%`, `C:\Windows\Temp`, and `Prefetch`                  |
 | Browser caches      | Chrome, Edge, Brave and Firefox caches (all profiles)                |
 | Recycle Bin         | Empties the Recycle Bin across all drives (Win32 Shell API)          |
+| Windows Update cache| Old payloads in `SoftwareDistribution\Download` (may need admin)      |
+| Crash dumps         | Crash dumps and Windows Error Reporting queues                       |
 | Large file scan     | Reports the biggest files under a path — **report only, never deletes** |
 
 ### Safety first

@@ -4,6 +4,7 @@
 pub mod browser;
 pub mod largefiles;
 pub mod recyclebin;
+pub mod system;
 pub mod temp;
 
 use crate::util::DirStats;
@@ -32,6 +33,8 @@ pub enum Category {
     Temp,
     Browser,
     RecycleBin,
+    WindowsUpdate,
+    CrashDumps,
 }
 
 impl Category {
@@ -40,6 +43,8 @@ impl Category {
             Category::Temp => "Temporary files",
             Category::Browser => "Browser caches",
             Category::RecycleBin => "Recycle Bin",
+            Category::WindowsUpdate => "Windows Update cache",
+            Category::CrashDumps => "Crash dumps & error reports",
         }
     }
 
@@ -49,6 +54,8 @@ impl Category {
             Category::Temp => "Leftover files from Windows and apps. Safe to remove.",
             Category::Browser => "Cached images and files from your browsers.",
             Category::RecycleBin => "Permanently delete everything in the Recycle Bin.",
+            Category::WindowsUpdate => "Old downloaded update files. May need admin rights.",
+            Category::CrashDumps => "Memory dumps and error reports. Safe to remove.",
         }
     }
 
@@ -58,6 +65,8 @@ impl Category {
             Category::Temp => "📄",
             Category::Browser => "🌐",
             Category::RecycleBin => "🗑",
+            Category::WindowsUpdate => "📦",
+            Category::CrashDumps => "📁",
         }
     }
 
@@ -66,11 +75,19 @@ impl Category {
             Category::Temp => Risk::Safe,
             Category::Browser => Risk::Mild,
             Category::RecycleBin => Risk::Mild,
+            Category::WindowsUpdate => Risk::Mild,
+            Category::CrashDumps => Risk::Safe,
         }
     }
 
     pub fn all() -> &'static [Category] {
-        &[Category::Temp, Category::Browser, Category::RecycleBin]
+        &[
+            Category::Temp,
+            Category::Browser,
+            Category::RecycleBin,
+            Category::WindowsUpdate,
+            Category::CrashDumps,
+        ]
     }
 }
 
@@ -99,6 +116,8 @@ pub fn scan(category: Category) -> CategoryReport {
         Category::Temp => temp::scan(),
         Category::Browser => browser::scan(),
         Category::RecycleBin => recyclebin::scan(),
+        Category::WindowsUpdate => system::windows_update_scan(),
+        Category::CrashDumps => system::crash_dumps_scan(),
     }
 }
 
@@ -108,5 +127,7 @@ pub fn clean(category: Category) -> CategoryReport {
         Category::Temp => temp::clean(),
         Category::Browser => browser::clean(),
         Category::RecycleBin => recyclebin::clean(),
+        Category::WindowsUpdate => system::windows_update_clean(),
+        Category::CrashDumps => system::crash_dumps_clean(),
     }
 }
