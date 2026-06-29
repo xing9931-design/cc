@@ -1,13 +1,12 @@
 //! wclean — a safe, fast C: drive cleanup tool for Windows.
 
-mod cleaner;
 mod cli;
 mod ui;
-mod util;
 
 use clap::Parser;
 
 use cli::{Cli, Command};
+use wclean::cleaner;
 
 fn main() {
     let cli = Cli::parse();

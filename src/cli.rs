@@ -2,7 +2,7 @@
 
 use clap::{Parser, Subcommand};
 
-use crate::cleaner::Category;
+use wclean::cleaner::Category;
 
 #[derive(Parser, Debug)]
 #[command(

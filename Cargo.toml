@@ -7,14 +7,34 @@ license = "MIT"
 repository = "https://github.com/xing9931-design/cc"
 readme = "README.md"
 
+[lib]
+name = "wclean"
+path = "src/lib.rs"
+
 [[bin]]
 name = "wclean"
 path = "src/main.rs"
+
+[[bin]]
+name = "wclean-gui"
+path = "src/bin/gui.rs"
+required-features = ["gui"]
+
+[features]
+default = []
+# Enable the graphical interface (egui/eframe). Build with: cargo build --features gui
+gui = ["dep:eframe"]
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 walkdir = "2"
 owo-colors = "4"
+eframe = { version = "0.31", optional = true, default-features = false, features = [
+    "glow",
+    "default_fonts",
+    "wayland",
+    "x11",
+] }
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.58", features = [

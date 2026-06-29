@@ -4,9 +4,9 @@ use std::io::{self, Write};
 
 use owo_colors::OwoColorize;
 
-use crate::cleaner::largefiles::LargeFile;
-use crate::cleaner::CategoryReport;
-use crate::util::human_bytes;
+use wclean::cleaner::largefiles::LargeFile;
+use wclean::cleaner::CategoryReport;
+use wclean::util::human_bytes;
 
 pub fn banner(action: &str) {
     println!("{} {}", "wclean".bold().cyan(), action.dimmed());

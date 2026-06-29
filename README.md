@@ -4,8 +4,9 @@ A safe, fast **C: drive cleanup tool for Windows**, written in Rust.
 
 `wclean` reclaims disk space from the usual suspects — temporary files, browser
 caches and the Recycle Bin — and can point you at the largest files on a drive
-so you can decide what else to remove. It is a command-line tool with colored
-output, and every destructive action is **opt-in and confirmed**.
+so you can decide what else to remove. It ships as both a **command-line tool**
+(colored output) and a **graphical app** (egui), and every destructive action is
+**opt-in and confirmed**.
 
 ## Features
 
@@ -27,16 +28,35 @@ output, and every destructive action is **opt-in and confirmed**.
 
 ## Install / Build
 
-Requires a [Rust toolchain](https://rustup.rs/). Build a release binary:
+Requires a [Rust toolchain](https://rustup.rs/).
 
 ```sh
+# Command-line tool
 cargo build --release
-# binary at: target/release/wclean.exe  (Windows)
+# -> target/release/wclean.exe
+
+# Graphical app (egui) — enable the `gui` feature
+cargo build --release --features gui --bin wclean-gui
+# -> target/release/wclean-gui.exe
 ```
 
 The Recycle Bin feature uses Win32 Shell APIs and only works on Windows. The
 project still builds and tests run on Linux/macOS (the Recycle Bin becomes a
 no-op), which keeps development possible off-Windows.
+
+## Graphical app
+
+`wclean-gui` gives you the same four features in a window:
+
+- Tick the categories you want, **Scan** to preview reclaimable space, then
+  **Clean selected…** — a confirmation dialog lists exactly what will be deleted.
+- Scans and cleans run on a background thread, so the window stays responsive.
+- The **Large files** panel lists the biggest files under any folder (report
+  only — it never deletes).
+
+```sh
+cargo run --release --features gui --bin wclean-gui
+```
 
 ## Usage
 
@@ -81,9 +101,12 @@ act on all of them.
 
 ```
 src/
-  main.rs            CLI entry point and command flow
-  cli.rs             Argument parsing (clap)
-  ui.rs              Terminal output, prompts, formatting
+  lib.rs             Core library: re-exports cleaner + util (shared by CLI/GUI)
+  main.rs            CLI binary: entry point and command flow
+  cli.rs             CLI argument parsing (clap)
+  ui.rs              CLI terminal output, prompts, formatting
+  bin/
+    gui.rs           GUI binary: egui front-end (feature = "gui")
   util.rs            Byte formatting, directory sizing, safe deletion
   cleaner/
     mod.rs           Category definitions and dispatch
