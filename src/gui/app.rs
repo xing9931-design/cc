@@ -48,6 +48,8 @@ pub struct WCleanApp {
     large_top: usize,
     large: Vec<LargeFile>,
     breakdown: Vec<UsageEntry>,
+    /// The folder the current breakdown describes (changes as you drill in).
+    breakdown_path: String,
 
     status: String,
     busy: bool,
@@ -95,6 +97,7 @@ impl WCleanApp {
             large_top: cfg.large_top.unwrap_or(20),
             large: Vec::new(),
             breakdown: Vec::new(),
+            breakdown_path: String::new(),
             status: "Ready".to_string(),
             busy: false,
             rx: None,
@@ -473,6 +476,14 @@ impl WCleanApp {
         });
     }
 
+    /// Analyze `self.breakdown_path` in the background.
+    fn start_breakdown(&mut self, ctx: &egui::Context) {
+        let path = std::path::PathBuf::from(self.breakdown_path.clone());
+        self.spawn(ctx, "Analyzing storage…", move || {
+            Job::Breakdown(usage::breakdown(&path, 14))
+        });
+    }
+
     fn categories(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
         let p = self.mode.palette();
         ui.horizontal(|ui| {
@@ -665,10 +676,8 @@ impl WCleanApp {
                     if widgets::primary_button(ui, &p, "📊  Storage breakdown", !self.busy)
                         .clicked()
                     {
-                        let path = std::path::PathBuf::from(self.large_path.clone());
-                        self.spawn(ctx, "Analyzing storage…", move || {
-                            Job::Breakdown(usage::breakdown(&path, 14))
-                        });
+                        self.breakdown_path = self.large_path.clone();
+                        self.start_breakdown(ctx);
                     }
                     if widgets::ghost_button(ui, &p, "📁  Largest files", !self.busy).clicked() {
                         let path = std::path::PathBuf::from(self.large_path.clone());
@@ -680,13 +689,14 @@ impl WCleanApp {
                     }
                 });
 
-                self.breakdown_results(ui, &p);
+                self.breakdown_results(ui, &p, ctx);
                 self.large_results(ui, &p);
             });
     }
 
-    /// Proportional bars showing what dominates the analyzed folder.
-    fn breakdown_results(&self, ui: &mut egui::Ui, p: &theme::Palette) {
+    /// Proportional bars showing what dominates the analyzed folder, with a
+    /// breadcrumb and click-to-drill-in navigation.
+    fn breakdown_results(&mut self, ui: &mut egui::Ui, p: &theme::Palette, ctx: &egui::Context) {
         if self.breakdown.is_empty() {
             return;
         }
@@ -698,13 +708,39 @@ impl WCleanApp {
             .unwrap_or(1)
             .max(1);
         let total = usage::total(&self.breakdown);
+
         ui.add_space(space::MD);
+
+        // Breadcrumb: current path + Up (and a reminder this is navigable).
+        let current = std::path::PathBuf::from(&self.breakdown_path);
+        let parent = current.parent().map(|p| p.to_path_buf());
+        let mut go_to: Option<std::path::PathBuf> = None;
+        ui.horizontal(|ui| {
+            if ui
+                .add_enabled(
+                    !self.busy && parent.is_some(),
+                    egui::Button::new(RichText::new("Up").small()),
+                )
+                .clicked()
+            {
+                go_to = parent.clone();
+            }
+            ui.label(
+                RichText::new(format!("📂 {}", self.breakdown_path))
+                    .small()
+                    .color(p.text_muted),
+            );
+        });
         ui.label(
-            RichText::new(format!("Storage breakdown — {} total", human_bytes(total)))
-                .small()
-                .color(p.text_muted),
+            RichText::new(format!(
+                "{} total · click a folder to drill in",
+                human_bytes(total)
+            ))
+            .small()
+            .color(p.text_muted),
         );
         ui.add_space(space::XS);
+
         for (i, e) in self.breakdown.iter().enumerate() {
             let frac = e.size as f32 / max as f32;
             let pct = if total > 0 {
@@ -713,7 +749,24 @@ impl WCleanApp {
                 0
             };
             let size_text = format!("{} · {pct}%", human_bytes(e.size));
-            widgets::usage_row(ui, p, &e.name, &size_text, frac, i == 0 || e.is_loose_files);
+            let clickable = !e.is_loose_files;
+            let resp = widgets::usage_row(
+                ui,
+                p,
+                &e.name,
+                &size_text,
+                frac,
+                i == 0 || e.is_loose_files,
+                clickable,
+            );
+            if clickable && resp.clicked() {
+                go_to = Some(current.join(&e.name));
+            }
+        }
+
+        if let Some(path) = go_to {
+            self.breakdown_path = path.display().to_string();
+            self.start_breakdown(ctx);
         }
     }
 

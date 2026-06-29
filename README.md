@@ -63,7 +63,8 @@ no-op), which keeps development possible off-Windows.
 - The **Large files** panel lists the biggest files under any folder (report
   only — it never deletes).
 - **Storage breakdown** — analyze a folder and see what's eating the space as
-  ranked proportional bars, before deciding what to remove.
+  ranked proportional bars. Click any folder to **drill in**, with a breadcrumb
+  and "Up" button — an explorable disk map.
 - **Drill down** into any category after a scan to preview the largest files it
   would remove — see exactly what you're deleting before you delete it.
 

@@ -53,7 +53,8 @@ beat.
   (amber).
 - **Storage breakdown** — proportional bars that turn "where did my space go?"
   into an instant read: the dominant folder is accented and full-width, the rest
-  scale down from it. Insight without a spreadsheet.
+  scale down from it. Insight without a spreadsheet. Rows are navigable —
+  click to drill in, with a breadcrumb and "Up" to climb back out.
 - **Drill-down** — a quiet "Show details" disclosure under each scanned category
   reveals its largest files. Transparency on demand, without cluttering the
   default view.

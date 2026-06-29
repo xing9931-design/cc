@@ -215,8 +215,9 @@ pub fn pill(ui: &mut Ui, text: &str, fg: Color32, bg: Color32) {
 
 /// One row of a storage breakdown: a name, a proportional bar, and a size.
 ///
-/// `fraction` (0..=1) sizes the filled portion of the bar; `highlight` paints
-/// it in the accent color (used for the largest / loose-files row).
+/// `fraction` (0..=1) sizes the filled portion of the bar; `accent` paints it in
+/// the accent color (the largest / loose-files row). `clickable` rows read as a
+/// drill-down link (accent name + pointer cursor). Returns the row response.
 pub fn usage_row(
     ui: &mut Ui,
     p: &Palette,
@@ -224,11 +225,14 @@ pub fn usage_row(
     size_text: &str,
     fraction: f32,
     accent: bool,
-) {
-    ui.horizontal(|ui| {
+    clickable: bool,
+) -> egui::Response {
+    let inner = ui.horizontal(|ui| {
         ui.add_sized(
             [150.0, 18.0],
-            egui::Label::new(RichText::new(name).color(p.text_strong)).truncate(),
+            egui::Label::new(RichText::new(name).color(p.text_strong))
+                .truncate()
+                .selectable(false),
         );
         // Reserve room for the size label, then fill the rest with the bar.
         let bar_w = (ui.available_width() - 86.0).max(48.0);
@@ -243,6 +247,13 @@ pub fn usage_row(
             ui.label(RichText::new(size_text).small().color(p.text_muted));
         });
     });
+
+    let resp = inner.response.interact(Sense::click());
+    if clickable {
+        resp.on_hover_cursor(egui::CursorIcon::PointingHand)
+    } else {
+        resp
+    }
 }
 
 /// A prominent filled action button.

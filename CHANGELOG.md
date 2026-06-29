@@ -3,6 +3,19 @@
 All notable changes to wclean are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.7.0]
+
+### Added
+
+- **Navigable storage breakdown** — the breakdown is now an explorable disk
+  map: click any folder to drill into it, with a breadcrumb of the current path
+  and an "Up" button to climb back out. Like WinDirStat, but in-line and calm.
+
+### Changed
+
+- `usage_row` returns a `Response` and shows a pointer cursor on drill-able
+  rows; folder names stay in the calm default text color.
+
 ## [0.6.0]
 
 ### Added
