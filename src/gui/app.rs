@@ -9,6 +9,7 @@ use super::theme::{self, space, Mode};
 use super::widgets;
 use crate::cleaner::largefiles::{self, LargeFile};
 use crate::cleaner::{self, Category, CategoryReport};
+use crate::config::Config;
 use crate::diskinfo::{self, DiskUsage};
 use crate::util::human_bytes;
 
@@ -42,22 +43,64 @@ pub struct WCleanApp {
 
 impl WCleanApp {
     pub fn new() -> Self {
+        let cfg = Config::load();
+
+        // Theme precedence: explicit env override > saved preference > dark.
+        let mode = match std::env::var("WCLEAN_THEME").ok().as_deref() {
+            Some("light") => Mode::Light,
+            Some("dark") => Mode::Dark,
+            _ => match cfg.theme.as_deref() {
+                Some("light") => Mode::Light,
+                _ => Mode::Dark,
+            },
+        };
+
+        // Restore the category selection by stable key; default to all on.
+        let selected = match &cfg.selected {
+            Some(keys) => Category::all()
+                .iter()
+                .map(|c| keys.iter().any(|k| k == c.key()))
+                .collect(),
+            None => vec![true; Category::all().len()],
+        };
+
         Self {
-            mode: Mode::from_env(),
+            mode,
             disk: diskinfo::system_drive(),
-            selected: vec![true; Category::all().len()],
+            selected,
             scan: Vec::new(),
             last_freed: None,
             notes: Vec::new(),
-            large_path: default_root(),
-            large_min_mb: 100,
-            large_top: 20,
+            large_path: cfg.large_path.unwrap_or_else(default_root),
+            large_min_mb: cfg.large_min_mb.unwrap_or(100),
+            large_top: cfg.large_top.unwrap_or(20),
             large: Vec::new(),
             status: "Ready".to_string(),
             busy: false,
             rx: None,
             confirm_clean: false,
         }
+    }
+
+    /// Snapshot the current preferences and persist them to disk.
+    fn save_prefs(&self) {
+        let selected = Category::all()
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| self.selected[*i])
+            .map(|(_, c)| c.key().to_string())
+            .collect();
+        Config {
+            theme: Some(match self.mode {
+                Mode::Dark => "dark".into(),
+                Mode::Light => "light".into(),
+            }),
+            selected: Some(selected),
+            large_path: Some(self.large_path.clone()),
+            large_min_mb: Some(self.large_min_mb),
+            large_top: Some(self.large_top),
+        }
+        .save();
     }
 
     fn selected_categories(&self) -> Vec<Category> {
@@ -204,6 +247,7 @@ impl WCleanApp {
                         if widgets::ghost_button(ui, &p, icon, true).clicked() {
                             self.mode = self.mode.toggled();
                             theme::apply(ctx, self.mode);
+                            self.save_prefs();
                         }
                     });
                 });
@@ -326,23 +370,53 @@ impl WCleanApp {
 
     fn categories(&mut self, ui: &mut egui::Ui) {
         let p = self.mode.palette();
-        widgets::section_header(
-            ui,
-            &p,
-            "What to clean",
-            "Tap a card to include or exclude it.",
-        );
+        ui.horizontal(|ui| {
+            widgets::section_header(
+                ui,
+                &p,
+                "What to clean",
+                "Tap a card to include or exclude it.",
+            );
+            ui.with_layout(Layout::right_to_left(Align::Min), |ui| {
+                let all_on = self.selected.iter().all(|&s| s);
+                let none_on = self.selected.iter().all(|&s| !s);
+                if ui
+                    .add_enabled(!none_on, egui::Button::new(RichText::new("Clear").small()))
+                    .clicked()
+                {
+                    self.selected.iter_mut().for_each(|s| *s = false);
+                    self.save_prefs();
+                }
+                if ui
+                    .add_enabled(
+                        !all_on,
+                        egui::Button::new(RichText::new("Select all").small()),
+                    )
+                    .clicked()
+                {
+                    self.selected.iter_mut().for_each(|s| *s = true);
+                    self.save_prefs();
+                }
+            });
+        });
+        ui.add_space(space::XS);
 
         let bytes: Vec<Option<u64>> = Category::all()
             .iter()
             .map(|c| self.scanned_bytes(*c))
             .collect();
 
+        let mut changed = false;
         for (i, &cat) in Category::all().iter().enumerate() {
             let mut sel = self.selected[i];
-            widgets::category_card(ui, &p, cat, &mut sel, bytes[i]);
+            if widgets::category_card(ui, &p, cat, &mut sel, bytes[i]) {
+                changed = true;
+            }
             self.selected[i] = sel;
             ui.add_space(space::SM);
+        }
+        if changed {
+            self.save_prefs();
         }
 
         if !self.notes.is_empty() {
@@ -373,23 +447,33 @@ impl WCleanApp {
             .inner_margin(egui::Margin::same(16))
             .show(ui, |ui| {
                 ui.set_width(ui.available_width());
+                let mut opts_changed = false;
                 egui::Grid::new("large_opts")
                     .num_columns(2)
                     .spacing([12.0, 8.0])
                     .show(ui, |ui| {
                         ui.label(RichText::new("Folder").color(p.text_muted));
-                        ui.add(
-                            egui::TextEdit::singleline(&mut self.large_path)
-                                .desired_width(f32::INFINITY),
-                        );
+                        opts_changed |= ui
+                            .add(
+                                egui::TextEdit::singleline(&mut self.large_path)
+                                    .desired_width(f32::INFINITY),
+                            )
+                            .changed();
                         ui.end_row();
                         ui.label(RichText::new("Min size (MB)").color(p.text_muted));
-                        ui.add(egui::DragValue::new(&mut self.large_min_mb).range(1..=1_000_000));
+                        opts_changed |= ui
+                            .add(egui::DragValue::new(&mut self.large_min_mb).range(1..=1_000_000))
+                            .changed();
                         ui.end_row();
                         ui.label(RichText::new("Show top").color(p.text_muted));
-                        ui.add(egui::DragValue::new(&mut self.large_top).range(1..=1000));
+                        opts_changed |= ui
+                            .add(egui::DragValue::new(&mut self.large_top).range(1..=1000))
+                            .changed();
                         ui.end_row();
                     });
+                if opts_changed {
+                    self.save_prefs();
+                }
 
                 ui.add_space(space::SM);
                 if widgets::primary_button(ui, &p, "📁  Scan folder", !self.busy).clicked() {
@@ -412,6 +496,19 @@ impl WCleanApp {
                                     .color(p.text)
                                     .small(),
                             );
+                            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                                let reveal = egui::Button::new(
+                                    RichText::new("Reveal").small().color(p.accent),
+                                )
+                                .frame(false);
+                                if ui
+                                    .add(reveal)
+                                    .on_hover_text("Show in file manager")
+                                    .clicked()
+                                {
+                                    reveal_in_file_manager(&f.path);
+                                }
+                            });
                         });
                     }
                 }
@@ -471,6 +568,22 @@ fn collect_notes(reports: &[CategoryReport]) -> Vec<String> {
         .iter()
         .flat_map(|r| r.notes.iter().cloned())
         .collect()
+}
+
+/// Open the platform file manager with `path` highlighted (best effort).
+fn reveal_in_file_manager(path: &std::path::Path) {
+    use std::process::Command;
+    let _ = if cfg!(windows) {
+        Command::new("explorer")
+            .arg(format!("/select,{}", path.display()))
+            .spawn()
+    } else if cfg!(target_os = "macos") {
+        Command::new("open").arg("-R").arg(path).spawn()
+    } else {
+        // Linux/other: open the containing directory.
+        let dir = path.parent().unwrap_or(path);
+        Command::new("xdg-open").arg(dir).spawn()
+    };
 }
 
 /// Best guess at the system drive root for the default large-file scan path.

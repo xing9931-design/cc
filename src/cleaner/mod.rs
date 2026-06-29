@@ -80,6 +80,22 @@ impl Category {
         }
     }
 
+    /// A stable identifier used for config persistence and the CLI.
+    pub fn key(self) -> &'static str {
+        match self {
+            Category::Temp => "temp",
+            Category::Browser => "browser",
+            Category::RecycleBin => "recyclebin",
+            Category::WindowsUpdate => "windows-update",
+            Category::CrashDumps => "crash-dumps",
+        }
+    }
+
+    /// Parse a [`Category::key`] back into a category.
+    pub fn from_key(key: &str) -> Option<Category> {
+        Category::all().iter().copied().find(|c| c.key() == key)
+    }
+
     pub fn all() -> &'static [Category] {
         &[
             Category::Temp,

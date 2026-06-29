@@ -3,6 +3,26 @@
 All notable changes to wclean are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.0]
+
+### Added
+
+- **Preference persistence** (`config` module, dependency-free `key=value`
+  file): the GUI remembers your theme, category selection, and large-file
+  settings between launches. Stored under `%APPDATA%\wclean\config`.
+- **Reveal in file manager** — large-file results gain a *Reveal* action that
+  highlights the file in Explorer (Windows), Finder (macOS) or the containing
+  folder (Linux).
+- **Select all / Clear** quick controls for the category list.
+- **App icon** generated in code (the brand mark) for the window and taskbar —
+  no image asset shipped.
+
+### Changed
+
+- Theme resolution order is now: `WCLEAN_THEME` env override → saved preference
+  → dark default.
+- Stable category keys (`Category::key` / `from_key`) underpin persistence.
+
 ## [0.3.0]
 
 ### Added

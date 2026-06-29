@@ -73,6 +73,10 @@ cargo run --release --features gui --bin wclean-gui
 | `WCLEAN_THEME`     | `light` or `dark` — initial theme (default `dark`)             |
 | `WCLEAN_DEMO_DISK` | `freeGB:totalGB` — inject a demo drive gauge off-Windows (dev) |
 
+The GUI remembers your theme, category selection and large-file settings
+between launches in `%APPDATA%\wclean\config` (`~/.config/wclean/config`
+elsewhere). `WCLEAN_THEME`, if set, overrides the saved theme.
+
 ## Usage
 
 ```sh

@@ -4,6 +4,7 @@
 //! provides byte formatting and safe deletion helpers.
 
 pub mod cleaner;
+pub mod config;
 pub mod diskinfo;
 pub mod util;
 
