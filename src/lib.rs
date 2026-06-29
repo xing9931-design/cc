@@ -4,4 +4,8 @@
 //! provides byte formatting and safe deletion helpers.
 
 pub mod cleaner;
+pub mod diskinfo;
 pub mod util;
+
+#[cfg(feature = "gui")]
+pub mod gui;

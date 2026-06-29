@@ -8,6 +8,12 @@ so you can decide what else to remove. It ships as both a **command-line tool**
 (colored output) and a **graphical app** (egui), and every destructive action is
 **opt-in and confirmed**.
 
+![wclean GUI — dark and light themes](docs/images/wclean-dark.png)
+
+> Designed trust-first. See the [Product Brief](docs/PRODUCT.md) for what we
+> build and why, and the [Design System](docs/DESIGN.md) for how it looks and
+> feels.
+
 ## Features
 
 | Category            | What it cleans                                                        |
@@ -57,6 +63,13 @@ no-op), which keeps development possible off-Windows.
 ```sh
 cargo run --release --features gui --bin wclean-gui
 ```
+
+### Environment variables
+
+| Variable           | Effect                                                          |
+| ------------------ | -------------------------------------------------------------- |
+| `WCLEAN_THEME`     | `light` or `dark` — initial theme (default `dark`)             |
+| `WCLEAN_DEMO_DISK` | `freeGB:totalGB` — inject a demo drive gauge off-Windows (dev) |
 
 ## Usage
 

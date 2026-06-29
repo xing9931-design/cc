@@ -1,6 +1,6 @@
 [package]
 name = "wclean"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "A safe, fast C: drive cleanup tool for Windows"
 license = "MIT"
@@ -40,6 +40,7 @@ eframe = { version = "0.31", optional = true, default-features = false, features
 windows = { version = "0.58", features = [
     "Win32_Foundation",
     "Win32_UI_Shell",
+    "Win32_Storage_FileSystem",
 ] }
 
 [profile.release]

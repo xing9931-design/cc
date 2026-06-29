@@ -1,0 +1,37 @@
+# Changelog
+
+All notable changes to wclean are documented here. This project adheres to
+[Semantic Versioning](https://semver.org/).
+
+## [0.2.0]
+
+### Added
+
+- **Redesigned GUI** built on a proper design system (`src/gui/theme.rs`):
+  color/spacing/radius/type tokens, light **and** dark themes (runtime toggle,
+  `WCLEAN_THEME` override).
+- **Drive-usage hero** — a painted ring gauge showing live `C:` usage, with the
+  fill color shifting accent → amber → red as the disk fills.
+- **Category cards** with icons, plain-language descriptions, and **risk badges**
+  (Safe / Low impact); the whole card is the selection target.
+- **Disk capacity** querying via `GetDiskFreeSpaceExW` (`diskinfo` module), with
+  graceful off-Windows fallback.
+- Product and design documentation under `docs/` (`PRODUCT.md`, `DESIGN.md`).
+
+### Changed
+
+- Core cleanup logic extracted into a reusable **library crate** (`wclean`),
+  consumed by both the CLI and GUI binaries.
+- The GUI now lives in `wclean::gui` (theme / widgets / app modules); the
+  `wclean-gui` binary is a thin shim.
+- CI lints and builds all features and builds the GUI on Windows.
+
+## [0.1.0]
+
+### Added
+
+- Initial CLI: temporary-file, browser-cache and Recycle Bin cleanup, plus a
+  bounded-memory large-file scanner.
+- Safety model: scan / `--dry-run` never touch disk; `clean` confirms unless
+  `--yes`; locked files are skipped and reported.
+- First GUI (egui) and CI (fmt + clippy + build/test on Windows and Linux).

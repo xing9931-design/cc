@@ -8,6 +8,24 @@ pub mod temp;
 
 use crate::util::DirStats;
 
+/// How safe a category is to clean, surfaced to the user as a trust signal.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Risk {
+    /// Regenerated automatically; cleaning has no downside.
+    Safe,
+    /// Cleaning may sign you out of sites or slow the next launch briefly.
+    Mild,
+}
+
+impl Risk {
+    pub fn label(self) -> &'static str {
+        match self {
+            Risk::Safe => "Safe",
+            Risk::Mild => "Low impact",
+        }
+    }
+}
+
 /// Identifies a cleanup category on the command line and in reports.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Category {
@@ -22,6 +40,32 @@ impl Category {
             Category::Temp => "Temporary files",
             Category::Browser => "Browser caches",
             Category::RecycleBin => "Recycle Bin",
+        }
+    }
+
+    /// One-line, plain-language explanation of what cleaning this removes.
+    pub fn description(self) -> &'static str {
+        match self {
+            Category::Temp => "Leftover files from Windows and apps. Safe to remove.",
+            Category::Browser => "Cached images and files from your browsers.",
+            Category::RecycleBin => "Permanently delete everything in the Recycle Bin.",
+        }
+    }
+
+    /// A glyph used as the category's icon in the UI.
+    pub fn glyph(self) -> &'static str {
+        match self {
+            Category::Temp => "📄",
+            Category::Browser => "🌐",
+            Category::RecycleBin => "🗑",
+        }
+    }
+
+    pub fn risk(self) -> Risk {
+        match self {
+            Category::Temp => Risk::Safe,
+            Category::Browser => Risk::Mild,
+            Category::RecycleBin => Risk::Mild,
         }
     }
 
