@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "屏绪",
+    "slug": "mood-wallpaper-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "scheme": "moodwallpaper",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0B0B0F"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.moodwallpaper.app"
+    },
+    "android": {
+      "package": "com.moodwallpaper.app"
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
